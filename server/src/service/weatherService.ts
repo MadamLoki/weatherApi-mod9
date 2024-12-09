@@ -1,0 +1,183 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+interface Coordinates {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+class Weather {
+  cityName: string;
+  temperature: number;
+  description: string;
+  humidity: number;
+  icon: string;
+  date: string;
+
+  constructor(
+    cityName: string,
+    temperature: number,
+    description: string,
+    humidity: number,
+    icon: string,
+    date: string
+  ) {
+    this.cityName = cityName;
+    this.temperature = temperature;
+    this.description = description;
+    this.humidity = humidity;
+    this.icon = icon;
+    this.date = date;
+  }
+
+  temperatureF() {
+    return this.temperature;
+  }
+
+  temperatureC() {
+    return (this.temperature - 32) * (5 / 9);
+  }
+}
+
+class WeatherService {
+  private baseURL?: string;
+  private apiKey?: string;
+  private cityName = '';
+
+  constructor(cityName: string) {
+    this.cityName = cityName;
+    this.baseURL = process.env.API_BASE_URL || '';
+    this.apiKey = process.env.API_KEY || '';
+  }
+
+  private async fetchLocationData(query: string) {
+    try {
+      if (!this.baseURL || !this.apiKey) {
+        throw new Error('Missing API_BASE_URL or API_KEY');
+      }
+      return await fetch(query).then((response) => response.json());
+    } catch (error) {
+      console.error('Error Fetching Location Data', error);
+      throw error;
+    }
+  }
+
+  private destructureLocationData(locationData: any): Coordinates {
+    if (!locationData || !locationData.lat || !locationData.lon) {
+      console.error('Invalid locationData:', locationData);
+      throw new Error('Location Data does not contain coordinates');
+    }
+
+    return {
+      name: locationData.name,
+      lat: locationData.lat,
+      lon: locationData.lon,
+    };
+  }
+
+  private buildGeocodeQuery(): string {
+    // console.log(`Building Geocode Query with cityName: "${this.cityName}"`);
+    const geoQuery = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(this.cityName)}&limit=5&appid=${this.apiKey}`;
+    return geoQuery;
+  }
+
+  private buildWeatherQuery(_coordinates: Coordinates): string {
+    const weatherQuery = `https://api.openweathermap.org/data/2.5/forecast?lat=${_coordinates.lat}&lon=${_coordinates.lon}&exclude=minutely,hourly&units=imperial&appid=${this.apiKey}`;
+    return weatherQuery;
+  }
+
+  private async fetchAndDestructureLocationData() {
+    const query = this.buildGeocodeQuery();
+    // console.log('Geocode Query:', query);
+    const locationData = await this.fetchLocationData(query);
+    // console.log('Location Data:', locationData);
+
+    if (!Array.isArray(locationData) || locationData.length === 0) {
+      console.error(`No location data found for city: ${this.cityName}`, locationData);
+      throw new Error(`No location data found for city: ${this.cityName}`);
+    }
+
+    return this.destructureLocationData(locationData[0]);
+  }
+
+  private async fetchWeatherData(coordinates: Coordinates) {
+    try {
+      const weatherQuery = this.buildWeatherQuery(coordinates);
+      console.log('Weather Query:', weatherQuery);
+      const response = await fetch(weatherQuery);
+
+      if (!response.ok) {
+        throw new Error('Missing Weather Data');
+      }
+
+      const weatherData = await response.json();
+      const currentWeather = this.parseCurrentWeather(weatherData);
+      const forecastArray = this.buildForecastArray(currentWeather, weatherData.list);
+      return { currentWeather, forecastArray };
+    } catch (error) {
+      console.error('Error Fetching Weather Data', error);
+      throw error;
+    }
+  }
+
+  private parseCurrentWeather(response: any) {
+    if (!response.list || !Array.isArray(response.list)) {
+      console.error('API response does not contain valid weather data:', response);
+      throw new Error('API response does not contain valid weather data');
+    }
+  
+    const currentWeather = response.list[0];
+    
+    // Add null checks for nested properties
+    if (!currentWeather?.main?.temp || 
+        !currentWeather?.weather?.[0]?.description || 
+        !currentWeather?.main?.humidity || 
+        !currentWeather?.weather?.[0]?.icon || 
+        !currentWeather?.dt_txt) {
+      throw new Error('Weather data is missing required properties');
+    }
+    const weather = new Weather(
+      response.city.name,  // Using city.name from the root response
+      currentWeather.main.temp,
+      currentWeather.weather[0].description,
+      currentWeather.main.humidity,
+      currentWeather.weather[0].icon,
+      currentWeather.dt_txt
+    );
+  
+    console.log('Parsed Weather:', weather); // Debug log
+    return weather;
+  }
+  
+
+  private buildForecastArray(_currentWeather: Weather, weatherData: any[]) {
+    // Get one forecast per day (every 8th item)
+    const dailyForecasts = weatherData.filter((_: any, index: number) => index % 8 === 0).slice(0, 5);
+  
+    return dailyForecasts.map((weather) => {
+      return {
+        date: weather.dt_txt,
+        temperature: weather.main.temp,
+        description: weather.weather[0].description,
+        humidity: weather.main.humidity,
+        icon: weather.weather[0].icon,
+        wind: weather.wind?.speed || 0
+      };
+    });
+  }
+
+  async getWeatherForCity(city: string) {
+    // console.log(`getWeatherForCity called with city: "${city}"`);
+    if (!city || typeof city !== 'string' || city.trim() === '') {
+      console.error('Invalid or empty city name provided.');
+      throw new Error('A valid city name must be provided.');
+    }
+
+    this.cityName = city.trim();
+    const coordinates = await this.fetchAndDestructureLocationData();
+    return await this.fetchWeatherData(coordinates);
+  }
+}
+
+export default WeatherService;
