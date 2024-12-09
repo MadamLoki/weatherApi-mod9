@@ -168,7 +168,7 @@ class WeatherService {
   }
 
   async getWeatherForCity(city: string) {
-    // console.log(`getWeatherForCity called with city: "${city}"`);
+    console.log(`getWeatherForCity called with city: "${city}"`);
     if (!city || typeof city !== 'string' || city.trim() === '') {
       console.error('Invalid or empty city name provided.');
       throw new Error('A valid city name must be provided.');
