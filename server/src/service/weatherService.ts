@@ -8,45 +8,40 @@ interface Coordinates {
 }
 
 class Weather {
-  cityName: string;
-  temperature: number;
-  description: string;
-  humidity: number;
-  icon: string;
+  city: string;
   date: string;
+  icon: string;
+  iconDescription: string;
+  tempF: number;
+  windSpeed: number;
+  humidity: number;
 
   constructor(
-    cityName: string,
-    temperature: number,
-    description: string,
-    humidity: number,
+    city: string,
+    date: string,
+    tempF: number,
     icon: string,
-    date: string
+    iconDescription: string,
+    windSpeed: number,
+    humidity: number,
   ) {
-    this.cityName = cityName;
-    this.temperature = temperature;
-    this.description = description;
-    this.humidity = humidity;
-    this.icon = icon;
+    this.city = city;
     this.date = date;
-  }
-
-  temperatureF() {
-    return this.temperature;
-  }
-
-  temperatureC() {
-    return (this.temperature - 32) * (5 / 9);
+    this.icon = icon;
+    this.iconDescription = iconDescription;
+    this.tempF = tempF;
+    this.windSpeed = windSpeed;
+    this.humidity = humidity;
   }
 }
 
 class WeatherService {
   private baseURL?: string;
   private apiKey?: string;
-  private cityName = '';
+  private city = '';
 
-  constructor(cityName: string) {
-    this.cityName = cityName;
+  constructor(city: string) {
+    this.city = city;
     this.baseURL = process.env.API_BASE_URL || '';
     this.apiKey = process.env.API_KEY || '';
   }
@@ -70,15 +65,15 @@ class WeatherService {
     }
 
     return {
-      name: locationData.name,
+      name: locationData.city,
       lat: locationData.lat,
       lon: locationData.lon,
     };
   }
 
   private buildGeocodeQuery(): string {
-    // console.log(`Building Geocode Query with cityName: "${this.cityName}"`);
-    const geoQuery = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(this.cityName)}&limit=5&appid=${this.apiKey}`;
+    // console.log(`Building Geocode Query with city: "${this.city}"`);
+    const geoQuery = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(this.city)}&limit=5&appid=${this.apiKey}`;
     return geoQuery;
   }
 
@@ -94,8 +89,8 @@ class WeatherService {
     // console.log('Location Data:', locationData);
 
     if (!Array.isArray(locationData) || locationData.length === 0) {
-      console.error(`No location data found for city: ${this.cityName}`, locationData);
-      throw new Error(`No location data found for city: ${this.cityName}`);
+      console.error(`No location data found for city: ${this.city}`, locationData);
+      throw new Error(`No location data found for city: ${this.city}`);
     }
 
     return this.destructureLocationData(locationData[0]);
@@ -138,12 +133,13 @@ class WeatherService {
       throw new Error('Weather data is missing required properties');
     }
     const weather = new Weather(
-      response.city.name,  // Using city.name from the root response
+      this.city,
+      currentWeather.dt_txt,
       currentWeather.main.temp,
-      currentWeather.weather[0].description,
-      currentWeather.main.humidity,
       currentWeather.weather[0].icon,
-      currentWeather.dt_txt
+      currentWeather.weather[0].description,
+      currentWeather.wind?.speed || 0,
+      currentWeather.main.humidity
     );
   
     console.log('Parsed Weather:', weather); // Debug log
@@ -158,7 +154,7 @@ class WeatherService {
     return dailyForecasts.map((weather) => {
       return {
         date: weather.dt_txt,
-        temperature: weather.main.temp,
+        tempF: weather.main.temp,
         description: weather.weather[0].description,
         humidity: weather.main.humidity,
         icon: weather.weather[0].icon,
@@ -174,7 +170,7 @@ class WeatherService {
       throw new Error('A valid city name must be provided.');
     }
 
-    this.cityName = city.trim();
+    this.city = city.trim();
     const coordinates = await this.fetchAndDestructureLocationData();
     return await this.fetchWeatherData(coordinates);
   }
