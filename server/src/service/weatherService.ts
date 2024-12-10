@@ -153,7 +153,7 @@ class WeatherService {
   
     return dailyForecasts.map((weather) => {
       return {
-        date: weather.dt_txt,
+        date: new Date(weather.dt_txt).toLocaleDateString(),
         tempF: weather.main.temp,
         description: weather.weather[0].description,
         humidity: weather.main.humidity,
