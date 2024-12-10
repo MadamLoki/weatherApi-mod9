@@ -1,18 +1,14 @@
 [
   {
-    "name": "Richmond",
-    "id": "1"
-  },
-  {
     "name": "San Diego",
-    "id": "3"
+    "id": "7"
   },
   {
     "name": "Richmond",
-    "id": "3"
+    "id": "10"
   },
   {
-    "name": "San Diego",
-    "id": "4"
+    "name": "London",
+    "id": "8"
   }
 ]

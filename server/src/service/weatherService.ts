@@ -134,7 +134,7 @@ class WeatherService {
     }
     const weather = new Weather(
       this.city,
-      currentWeather.dt_txt,
+      new Date(currentWeather.dt_txt).toLocaleString(),
       currentWeather.main.temp,
       currentWeather.weather[0].icon,
       currentWeather.weather[0].description,
