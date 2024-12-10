@@ -15,7 +15,10 @@ router.post('/', async (req: Request, res: Response) => {
 
     console.log('Sending weather data:', weatherData);
 
-    res.json(weatherData);
+    res.json({
+      currentWeather: weatherData.currentWeather,
+      forecast: weatherData.forecastArray
+    });
 
     await HistoryService.addCity(cityName);
 
