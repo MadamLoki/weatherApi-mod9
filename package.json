@@ -15,7 +15,7 @@
     "client:dev": "cd client && npm run dev",
     "predeploy": "npm run render-build",
     "build": "cd client && npm run build",
-    "deploy": "gh-pages -d client/build",
+    "deploy": "gh-pages -d client/dist",
     "render-build": "npm install && npm run build"
   },
   "keywords": [],
