@@ -2,6 +2,7 @@
   "name": "weather-dashboard",
   "version": "1.0.0",
   "description": "",
+  "homepage": "https://madamloki.github.io/weatherApi-mod9/",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -12,7 +13,9 @@
     "install": "cd server && npm i && cd ../client && npm i",
     "client:build": "cd client && npm run build",
     "client:dev": "cd client && npm run dev",
+    "predeploy": "npm run render-build",
     "build": "cd client && npm run build",
+    "deploy": "gh-pages -d client/build",
     "render-build": "npm install && npm run build"
   },
   "keywords": [],
