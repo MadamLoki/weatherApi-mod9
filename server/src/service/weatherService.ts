@@ -44,16 +44,33 @@ class WeatherService {
     this.city = city;
     this.baseURL = process.env.API_BASE_URL || '';
     this.apiKey = process.env.API_KEY || '';
+
+    console.log('Constructor - API_BASE_URL:', this.baseURL);
+    console.log('Constructor - API_KEY:', this.apiKey);
+
+    if (!this.baseURL || !this.apiKey) {
+      console.error('Missing environment variables:');
+      console.error('API_BASE_URL:', this.baseURL);
+      console.error('API_KEY:', this.apiKey);
+    }
   }
 
   private async fetchLocationData(query: string) {
     try {
       if (!this.baseURL || !this.apiKey) {
+        console.error('Environment variables not loaded:');
+        console.error('baseURL:', this.baseURL);
+        console.error('apiKey:', this.apiKey);
         throw new Error('Missing API_BASE_URL or API_KEY');
       }
-      return await fetch(query).then((response) => response.json());
+
+      const response = await fetch(query);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
     } catch (error) {
-      console.error('Error Fetching Location Data', error);
+      console.error('Error Fetching Location Data:', error);
       throw error;
     }
   }
@@ -73,13 +90,11 @@ class WeatherService {
 
   private buildGeocodeQuery(): string {
     // console.log(`Building Geocode Query with city: "${this.city}"`);
-    const geoQuery = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(this.city)}&limit=5&appid=${this.apiKey}`;
-    return geoQuery;
+    return `${this.baseURL}geo/1.0/direct?q=${encodeURIComponent(this.city)}&limit=5&appid=${this.apiKey}`;
   }
 
   private buildWeatherQuery(_coordinates: Coordinates): string {
-    const weatherQuery = `https://api.openweathermap.org/data/2.5/forecast?lat=${_coordinates.lat}&lon=${_coordinates.lon}&exclude=minutely,hourly&units=imperial&appid=${this.apiKey}`;
-    return weatherQuery;
+    return `${this.baseURL}data/2.5/forecast?lat=${_coordinates.lat}&lon=${_coordinates.lon}&exclude=minutely,hourly&units=imperial&appid=${this.apiKey}`;
   }
 
   private async fetchAndDestructureLocationData() {
@@ -121,15 +136,15 @@ class WeatherService {
       console.error('API response does not contain valid weather data:', response);
       throw new Error('API response does not contain valid weather data');
     }
-  
+
     const currentWeather = response.list[0];
-    
+
     // Add null checks for nested properties
-    if (!currentWeather?.main?.temp || 
-        !currentWeather?.weather?.[0]?.description || 
-        !currentWeather?.main?.humidity || 
-        !currentWeather?.weather?.[0]?.icon || 
-        !currentWeather?.dt_txt) {
+    if (!currentWeather?.main?.temp ||
+      !currentWeather?.weather?.[0]?.description ||
+      !currentWeather?.main?.humidity ||
+      !currentWeather?.weather?.[0]?.icon ||
+      !currentWeather?.dt_txt) {
       throw new Error('Weather data is missing required properties');
     }
     const weather = new Weather(
@@ -141,16 +156,16 @@ class WeatherService {
       currentWeather.wind?.speed || 0,
       currentWeather.main.humidity
     );
-  
+
     console.log('Parsed Weather:', weather); // Debug log
     return weather;
   }
-  
+
 
   private buildForecastArray(_currentWeather: Weather, weatherData: any[]) {
     // Get one forecast per day (every 8th item)
     const dailyForecasts = weatherData.filter((_: any, index: number) => index % 8 === 0).slice(0, 5);
-  
+
     return dailyForecasts.map((weather) => {
       return {
         date: new Date(weather.dt_txt).toLocaleDateString(),
