@@ -45,13 +45,13 @@ class WeatherService {
     this.baseURL = process.env.API_BASE_URL || '';
     this.apiKey = process.env.API_KEY || '';
 
-    console.log('Constructor - API_BASE_URL:', this.baseURL);
-    console.log('Constructor - API_KEY:', this.apiKey);
+    // console.log('Constructor - API_BASE_URL:', this.baseURL);
+    // console.log('Constructor - API_KEY:', this.apiKey);
 
     if (!this.baseURL || !this.apiKey) {
-      console.error('Missing environment variables:');
-      console.error('API_BASE_URL:', this.baseURL);
-      console.error('API_KEY:', this.apiKey);
+      //console.error('Missing environment variables:');
+      //console.error('API_BASE_URL:', this.baseURL);
+      //console.error('API_KEY:', this.apiKey);
     }
   }
 
